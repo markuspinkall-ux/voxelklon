@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.voxelklon.VoxelKlon</id>
+  <name>VoxelKlon</name>
+  <summary>Minecraft-artiger Voxel-Klon mit Crafting, Monstern und Dörfern</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <description>
+    <p>Eine unendliche Voxel-Welt mit Gebirgen, Seen, Bäumen und Villager-Dörfern.
+    Baue Blöcke ab, crafte Werkzeuge mit den originalen Minecraft-Rezepten,
+    schmelze Erz im Ofen und überlebe die Nacht gegen Zombies und Creeper.</p>
+  </description>
+  <launchable type="desktop-id">org.voxelklon.VoxelKlon.desktop</launchable>
+  <content_rating type="oars-1.1">
+    <content_attribute id="violence-fantasy">mild</content_attribute>
+  </content_rating>
+  <releases>
+    <release version="0.1.0" date="2026-11-08"/>
+  </releases>
+</component>

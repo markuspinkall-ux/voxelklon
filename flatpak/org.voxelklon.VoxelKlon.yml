@@ -1,0 +1,33 @@
+app-id: org.voxelklon.VoxelKlon
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+command: voxelklon
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --socket=pulseaudio
+  - --device=all          # GPU (Vulkan/OpenGL) und Gamepads
+modules:
+  - name: voxelklon
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 VoxelKlon.x86_64 /app/lib/voxelklon/VoxelKlon.x86_64
+      - install -Dm644 VoxelKlon.pck /app/lib/voxelklon/VoxelKlon.pck
+      - install -Dm755 voxelklon.sh /app/bin/voxelklon
+      - install -Dm644 icon.svg /app/share/icons/hicolor/scalable/apps/org.voxelklon.VoxelKlon.svg
+      - install -Dm644 org.voxelklon.VoxelKlon.desktop /app/share/applications/org.voxelklon.VoxelKlon.desktop
+      - install -Dm644 org.voxelklon.VoxelKlon.metainfo.xml /app/share/metainfo/org.voxelklon.VoxelKlon.metainfo.xml
+    sources:
+      - type: file
+        path: ../build/linux/VoxelKlon.x86_64
+      - type: file
+        path: ../build/linux/VoxelKlon.pck
+      - type: file
+        path: voxelklon.sh
+      - type: file
+        path: ../icon.svg
+      - type: file
+        path: org.voxelklon.VoxelKlon.desktop
+      - type: file
+        path: org.voxelklon.VoxelKlon.metainfo.xml

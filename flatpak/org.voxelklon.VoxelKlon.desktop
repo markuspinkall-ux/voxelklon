@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=VoxelKlon
+GenericName=Voxel-Sandbox-Spiel
+Comment=Minecraft-artiger Voxel-Klon mit Crafting, Monstern und Dörfern
+Exec=voxelklon
+Icon=org.voxelklon.VoxelKlon
+Terminal=false
+Categories=Game;AdventureGame;
+Keywords=minecraft;voxel;crafting;sandbox;

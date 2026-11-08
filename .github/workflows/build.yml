@@ -1,0 +1,117 @@
+name: Build (Flatpak & RPM)
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: "4.4.1"
+
+jobs:
+  export:
+    name: Testen, exportieren, RPM bauen
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Godot und Exportvorlagen installieren
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          wget -q "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          wget -q "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q "Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          tdir="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$tdir"
+          unzip -q "Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          mv templates/* "$tdir/"
+          rm -rf templates *.zip *.tpz
+
+      - name: Projekt importieren
+        run: godot --headless --path . --import 2>&1 | tail -n 20 || true
+
+      - name: Spiel testweise starten (Skriptfehler finden)
+        run: |
+          set +e
+          timeout 180 godot --headless --path . --quit-after 600 > run.log 2>&1
+          cat run.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Invalid call|Invalid access" run.log; then
+            echo "::error::Skriptfehler gefunden – siehe Log oben"
+            exit 1
+          fi
+          grep -q "VoxelKlon gestartet" run.log || { echo "::error::Spiel ist nicht vollständig gestartet"; exit 1; }
+
+      - name: Linux-Export
+        run: |
+          mkdir -p build/linux
+          godot --headless --path . --export-release "Linux" build/linux/VoxelKlon.x86_64
+          ls -la build/linux
+
+      - name: RPM bauen
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q rpm
+          GODOT=godot ./rpm/build-rpm.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-export
+          path: build/linux/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: voxelklon-rpm
+          path: build/*.rpm
+
+  flatpak:
+    name: Flatpak bauen
+    needs: export
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-25.08
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-export
+          path: build/linux
+
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: VoxelKlon.flatpak
+          manifest-path: flatpak/org.voxelklon.VoxelKlon.yml
+          cache-key: flatpak-builder-${{ github.sha }}
+
+  release:
+    name: Downloads veröffentlichen
+    needs: [export, flatpak]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Dateien sammeln
+        run: |
+          mkdir -p out
+          find dist -name '*.flatpak' -exec cp {} out/ \;
+          find dist -name '*.rpm' -exec cp {} out/ \;
+          ls -la out
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: VoxelKlon (neuester Build)
+          prerelease: true
+          body: |
+            Automatisch gebaut aus ${{ github.sha }}.
+
+            **Flatpak:** `flatpak install --user VoxelKlon.flatpak` und dann `flatpak run org.voxelklon.VoxelKlon`
+            **RPM (Fedora/openSUSE):** `sudo dnf install ./voxelklon-*.rpm` und dann `voxelklon`
+          files: out/*
