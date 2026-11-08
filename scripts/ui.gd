@@ -655,7 +655,7 @@ func _insert(c: Array, indices: Array, st: Dictionary):
 
 
 func _quick_move(slot) -> void:
-	var st = slot.get_stack()
+	var st = slot.get_slot_stack()
 	if st == null:
 		return
 	var c: Array = slot.container
@@ -788,7 +788,7 @@ func _process(delta: float) -> void:
 			cursor_count.text = str(cnt) if cnt > 1 else ""
 		else:
 			cursor_icon.visible = false
-		var hs = hover_slot.get_stack() if hover_slot != null else null
+		var hs = hover_slot.get_slot_stack() if hover_slot != null else null
 		if hs != null and cursor_stack == null:
 			hover_label.visible = true
 			var txt := Items.display_name(hs["id"])
