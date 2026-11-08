@@ -24,6 +24,7 @@ var hurt_rect: ColorRect
 var water_rect: ColorRect
 var pause_label: Label
 var death_panel: Control
+var pause_panel: Control
 
 var screen: Control
 var title: Label
@@ -58,6 +59,8 @@ func _ready() -> void:
 	_build_hud()
 	_build_screen()
 	_build_death()
+	_build_pause()
+	process_mode = Node.PROCESS_MODE_ALWAYS
 
 
 # ---------------------------------------------------------------------------
@@ -220,7 +223,7 @@ func _build_hud() -> void:
 	info.position = Vector2(10, 8)
 	hud.add_child(info)
 
-	var help := _label("WASD Laufen · Leertaste Springen/Schwimmen · Strg/Shift Sprinten · LMB Abbauen/Angreifen · RMB Platzieren/Benutzen · E Inventar · R Rezeptbuch · 1-9/Mausrad · Q Wegwerfen · Esc Maus · F11 Vollbild", 13, Color(1, 1, 1, 0.8))
+	var help := _label("WASD Laufen · Leertaste Springen/Schwimmen · Strg/Shift Sprinten · LMB Abbauen/Angreifen · RMB Platzieren/Benutzen · E Inventar · R Rezeptbuch · 1-9/Mausrad · Q Wegwerfen · Esc Pause · F11 Vollbild", 13, Color(1, 1, 1, 0.8))
 	help.anchor_top = 1.0
 	help.anchor_bottom = 1.0
 	help.offset_left = 10
@@ -422,6 +425,66 @@ func _build_screen() -> void:
 	cursor_icon.add_child(cursor_count)
 
 
+func _build_pause() -> void:
+	pause_panel = ColorRect.new()
+	(pause_panel as ColorRect).color = Color(0.07, 0.08, 0.11, 0.78)
+	pause_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pause_panel.visible = false
+	add_child(pause_panel)
+	var c := CenterContainer.new()
+	c.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pause_panel.add_child(c)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 14)
+	vb.custom_minimum_size = Vector2(380, 0)
+	c.add_child(vb)
+	var l := _label("Spiel pausiert", 40, Color("#dce6ff"))
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(l)
+	vb.add_child(_menu_button("Weiterspielen", close_pause, true))
+	vb.add_child(_menu_button("Zum Hauptmenü", func(): main.back_to_menu(), false))
+	vb.add_child(_menu_button("Spiel beenden", func(): get_tree().quit(), false))
+
+
+func _menu_button(text: String, cb: Callable, primary: bool) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = Vector2(0, 50)
+	b.focus_mode = Control.FOCUS_NONE
+	b.add_theme_font_size_override("font_size", 20)
+	var bg := Color("#8fb3ff") if primary else Color("#232836")
+	var fg := Color("#12151b") if primary else Color("#dce6ff")
+	for st in ["normal", "hover", "pressed"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = bg.lightened(0.12) if st == "hover" else bg
+		sb.border_color = Color("#8fb3ff") if st != "normal" or primary else Color(1, 1, 1, 0.08)
+		sb.set_border_width_all(2)
+		sb.set_corner_radius_all(12)
+		b.add_theme_stylebox_override(st, sb)
+	b.add_theme_color_override("font_color", fg)
+	b.add_theme_color_override("font_hover_color", fg)
+	b.add_theme_color_override("font_pressed_color", fg)
+	b.pressed.connect(cb)
+	return b
+
+
+func open_pause() -> void:
+	mode = "pause"
+	pause_panel.visible = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	get_tree().paused = true
+
+
+func close_pause() -> void:
+	pause_panel.visible = false
+	mode = ""
+	get_tree().paused = false
+	if not player.dead:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		player.use_cd = 0.3
+		player.mine_delay = 0.3
+
+
 func _build_death() -> void:
 	death_panel = ColorRect.new()
 	(death_panel as ColorRect).color = Color(0.5, 0.0, 0.0, 0.55)
@@ -492,6 +555,9 @@ func _open(m: String, t: String) -> void:
 func close() -> void:
 	if mode == "":
 		return
+	if mode == "pause":
+		close_pause()
+		return
 	for i in 9:
 		if craft_grid[i] != null:
 			_return_to_player(craft_grid[i])
@@ -525,17 +591,19 @@ func _input(event: InputEvent) -> void:
 		KEY_E:
 			if mode == "":
 				open_inventory()
-			else:
+			elif mode != "pause":
 				close()
 			get_viewport().set_input_as_handled()
 		KEY_ESCAPE:
-			if mode != "":
+			if mode == "pause":
+				close_pause()
+			elif mode != "":
 				close()
 			else:
-				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+				open_pause()
 			get_viewport().set_input_as_handled()
 		KEY_R:
-			if mode != "":
+			if mode != "" and mode != "pause":
 				recipe_panel.visible = not recipe_panel.visible
 				get_viewport().set_input_as_handled()
 		KEY_F11:

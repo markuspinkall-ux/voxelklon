@@ -36,18 +36,18 @@ jobs:
       - name: Spiel testweise starten (Skriptfehler finden)
         run: |
           set +e
-          timeout 180 godot --headless --path . --quit-after 600 > run.log 2>&1
+          timeout 180 godot --headless --path . --quit-after 900 -- --autostart > run.log 2>&1
           cat run.log
           if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Invalid call|Invalid access" run.log; then
             echo "::error::Skriptfehler gefunden – siehe Log oben"
             exit 1
           fi
-          grep -q "VoxelKlon gestartet" run.log || { echo "::error::Spiel ist nicht vollständig gestartet"; exit 1; }
+          grep -q "Creative Craft gestartet" run.log || { echo "::error::Spiel ist nicht vollständig gestartet"; exit 1; }
 
       - name: Linux-Export
         run: |
           mkdir -p build/linux
-          godot --headless --path . --export-release "Linux" build/linux/VoxelKlon.x86_64
+          godot --headless --path . --export-release "Linux" build/linux/CreativeCraft.x86_64
           ls -la build/linux
 
       - name: RPM bauen
@@ -63,7 +63,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: voxelklon-rpm
+          name: creative-craft-rpm
           path: build/*.rpm
 
   flatpak:
@@ -83,9 +83,24 @@ jobs:
 
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: VoxelKlon.flatpak
-          manifest-path: flatpak/org.voxelklon.VoxelKlon.yml
+          bundle: CreativeCraft.flatpak
+          manifest-path: flatpak/org.creativecraft.CreativeCraft.yml
           cache-key: flatpak-builder-${{ github.sha }}
+
+      - name: Menüeintrag und Icons im Paket prüfen
+        run: |
+          set -e
+          desk=$(find . -path '*export/share/applications/org.creativecraft.CreativeCraft.desktop' | head -n 1)
+          if [ -z "$desk" ]; then
+            echo "::error::Kein Menüeintrag (.desktop) im Flatpak exportiert"
+            find . -path '*export*' | head -50
+            exit 1
+          fi
+          echo "Menüeintrag gefunden: $desk"
+          cat "$desk"
+          icons=$(find . -path '*export/share/icons/hicolor/*/apps/org.creativecraft.CreativeCraft*' | wc -l)
+          echo "Exportierte Icons: $icons"
+          [ "$icons" -gt 0 ] || { echo "::error::Keine Icons exportiert"; exit 1; }
 
   release:
     name: Downloads veröffentlichen
@@ -107,11 +122,11 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: VoxelKlon (neuester Build)
+          name: Creative Craft (neuester Build)
           prerelease: true
           body: |
             Automatisch gebaut aus ${{ github.sha }}.
 
-            **Flatpak:** `flatpak install --user VoxelKlon.flatpak` und dann `flatpak run org.voxelklon.VoxelKlon`
-            **RPM (Fedora/openSUSE):** `sudo dnf install ./voxelklon-*.rpm` und dann `voxelklon`
+            **Flatpak:** `flatpak install --user CreativeCraft.flatpak` und dann `flatpak run org.creativecraft.CreativeCraft`
+            **RPM (Fedora/openSUSE):** `sudo dnf install ./creative-craft-*.rpm` und dann `creative-craft`
           files: out/*

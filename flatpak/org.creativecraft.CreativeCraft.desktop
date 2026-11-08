@@ -1,10 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=VoxelKlon
+Name=Creative Craft
 GenericName=Voxel-Sandbox-Spiel
-Comment=Minecraft-artiger Voxel-Klon mit Crafting, Monstern und Dörfern
-Exec=voxelklon
-Icon=org.voxelklon.VoxelKlon
+Comment=Bauen, craften und überleben in einer Voxel-Welt
+Exec=creative-craft
+Icon=org.creativecraft.CreativeCraft
 Terminal=false
 Categories=Game;AdventureGame;
 Keywords=minecraft;voxel;crafting;sandbox;

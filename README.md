@@ -1,4 +1,4 @@
-# VoxelKlon – ein Minecraft-Klon in Godot 4
+# Creative Craft – ein Minecraft-artiges Spiel in Godot 4
 
 Komplett in GDScript, ohne externe Assets: alle Texturen und Icons werden beim Start prozedural erzeugt.
 
@@ -6,8 +6,8 @@ Komplett in GDScript, ohne externe Assets: alle Texturen und Icons werden beim S
 
 Fertige Builds (automatisch bei jedem Push gebaut): **https://github.com/markuspinkall-ux/voxelklon/releases/tag/latest**
 
-- Flatpak: `flatpak install --user VoxelKlon.flatpak` → `flatpak run org.voxelklon.VoxelKlon`
-- RPM: `sudo dnf install ./voxelklon-0.1.0-1.x86_64.rpm` → `voxelklon`
+- Flatpak: `flatpak install --user CreativeCraft.flatpak` → `flatpak run org.creativecraft.CreativeCraft`
+- RPM: `sudo dnf install ./creative-craft-0.2.0-1.x86_64.rpm` → `creative-craft`
 
 ## Features
 
@@ -24,6 +24,8 @@ Fertige Builds (automatisch bei jedem Push gebaut): **https://github.com/markusp
 - **Truhen** mit 27 Plätzen
 - **Werkzeuge** in Holz/Stein/Eisen/Diamant mit Abbaugeschwindigkeit, Abbaustufen (z.B. Eisenerz braucht Steinspitzhacke) und Haltbarkeit
 - **Rezeptbuch** im Spiel (Taste R im Inventar)
+- **Startmenü** (Seed, Sichtweite) und **Pause-Menü** (Esc) im Graphit-Stil von Creative OS
+- **Animierte Hand** in der Ego-Ansicht: Arm mit leerer Hand, Werkzeug oder Block in der Hand, Schwung beim Abbauen/Schlagen/Bauen, Wippen beim Laufen
 
 ### Rezepte (Auswahl)
 
@@ -58,7 +60,7 @@ Fertige Builds (automatisch bei jedem Push gebaut): **https://github.com/markusp
 | E | Inventar öffnen/schließen |
 | R | Rezeptbuch (im Inventar) |
 | Q | Item wegwerfen |
-| Esc | Maus freigeben / Menü schließen |
+| Esc | Pause-Menü / Menü schließen |
 | F11 | Vollbild |
 
 Im Inventar: Linksklick = Stapel nehmen/ablegen, Rechtsklick = halbieren bzw. einzeln ablegen, Shift+Klick = schnell verschieben (auch Crafting-Ergebnis: alles craften).
@@ -77,15 +79,15 @@ Beim ersten Öffnen importiert Godot das Projekt – das dauert ein paar Sekunde
 sudo dnf install rpm-build godot            # openSUSE: sudo zypper install rpm-build godot
 chmod +x rpm/build-rpm.sh
 ./rpm/build-rpm.sh
-sudo dnf install ./build/voxelklon-0.1.0-1*.x86_64.rpm
-voxelklon                                    # oder über das Anwendungsmenü starten
+sudo dnf install ./build/creative-craft-0.2.0-1*.x86_64.rpm
+creative-craft                               # oder über das Anwendungsmenü starten
 ```
 
 Das Skript exportiert das Spiel mit Godot und packt es als RPM:
 - **Mit Godot-Exportvorlagen** (Editor → Exportvorlagen verwalten) entsteht eine eigenständige Spiel-Binärdatei.
 - **Ohne Vorlagen** wird nur die Spieldatei (`.pck`) exportiert und das installierte Godot als Laufzeit ins Paket gelegt – funktioniert genauso.
 
-Installiert wird nach `/usr/lib/voxelklon/`, Starter `/usr/bin/voxelklon`, inklusive Menüeintrag und Icon. Entfernen mit `sudo dnf remove voxelklon`.
+Installiert wird nach `/usr/lib/creative-craft/`, Starter `/usr/bin/creative-craft`, inklusive Menüeintrag und Icon. Entfernen mit `sudo dnf remove creative-craft`.
 
 ## Als Flatpak bauen
 
@@ -96,14 +98,14 @@ sudo apt install flatpak flatpak-builder        # bzw. dnf / pacman
 
 chmod +x flatpak/build-flatpak.sh
 ./flatpak/build-flatpak.sh
-flatpak run org.voxelklon.VoxelKlon
+flatpak run org.creativecraft.CreativeCraft
 ```
 
 Das Skript
 1. exportiert das Spiel mit dem Preset „Linux“ nach `build/linux/`,
 2. installiert die Laufzeit `org.freedesktop.Platform//25.08`,
 3. baut und installiert das Flatpak und
-4. legt zusätzlich `build/VoxelKlon.flatpak` zum Weitergeben an.
+4. legt zusätzlich `build/CreativeCraft.flatpak` zum Weitergeben an.
 
 Die Flatpak-Dateien liegen in `flatpak/` (Manifest, `.desktop`, Metainfo, Startskript).
 
@@ -121,9 +123,13 @@ scripts/
   texture_gen.gd  Prozedurale 16×16-Texturen
   player.gd       Spieler (Bewegung, Abbauen, Bauen, Kampf, Leben)
   mob.gd          Zombie, Creeper, Villager
+  menu.gd         Startmenü
+  hand.gd         Animierte Hand / gehaltenes Item
   inventory.gd    Inventar
   ui.gd, slot.gd  HUD, Inventar, Crafting, Truhe, Ofen, Rezeptbuch
 flatpak/          Flatpak-Paketierung
+rpm/              RPM-Paketierung
+icons/            App-Icons (PNG, aus icon.svg)
 ```
 
 ## Einstellungen & Tipps

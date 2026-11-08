@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Baut VoxelKlon als installierbare RPM-Datei (Fedora, openSUSE, RHEL & Co.).
+# Baut Creative Craft als installierbare RPM-Datei (Fedora, openSUSE, RHEL & Co.).
 #
 # Voraussetzungen:
 #   Fedora:   sudo dnf install rpm-build godot
@@ -7,10 +7,10 @@
 #   (Godot geht auch als Flatpak: flatpak install flathub org.godotengine.Godot)
 #
 # Benutzung:  ./rpm/build-rpm.sh
-# Ergebnis:   build/voxelklon-<version>.x86_64.rpm
+# Ergebnis:   build/creative-craft-<version>.x86_64.rpm
 set -euo pipefail
 
-VERSION="0.1.0"
+VERSION="0.2.0"
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
 
@@ -43,15 +43,15 @@ $GODOT --headless --path . --import >/dev/null 2>&1 || true
 # --- Export ---
 # Variante 1: mit Godot-Exportvorlagen -> eigenständige Spiel-Binärdatei
 BIN=""
-if $GODOT --headless --path . --export-release "Linux" build/linux/VoxelKlon.x86_64 \
-   && [ -f build/linux/VoxelKlon.x86_64 ] && [ -f build/linux/VoxelKlon.pck ]; then
-  BIN="build/linux/VoxelKlon.x86_64"
+if $GODOT --headless --path . --export-release "Linux" build/linux/CreativeCraft.x86_64 \
+   && [ -f build/linux/CreativeCraft.x86_64 ] && [ -f build/linux/CreativeCraft.pck ]; then
+  BIN="build/linux/CreativeCraft.x86_64"
   echo ">> Export mit Exportvorlagen erfolgreich"
 else
   # Variante 2: ohne Vorlagen -> nur Spieldaten (.pck) exportieren und
   # das installierte Godot als Laufzeit mit ins Paket legen
   echo ">> Keine Exportvorlagen gefunden – verwende Godot selbst als Laufzeit"
-  $GODOT --headless --path . --export-pack "Linux" build/linux/VoxelKlon.pck
+  $GODOT --headless --path . --export-pack "Linux" build/linux/CreativeCraft.pck
   if [ -z "$NATIVE_GODOT" ]; then
     echo "Mit Flatpak-Godot werden die Exportvorlagen benötigt:"
     echo "  Godot öffnen -> Editor -> Exportvorlagen verwalten -> Herunterladen und installieren"
@@ -64,27 +64,27 @@ else
     exit 1
   fi
 fi
-[ -f build/linux/VoxelKlon.pck ] || { echo "Export fehlgeschlagen."; exit 1; }
+[ -f build/linux/CreativeCraft.pck ] || { echo "Export fehlgeschlagen."; exit 1; }
 
 # --- RPM bauen ---
 TOP="$ROOT/build/rpmbuild"
 rm -rf "$TOP"
 mkdir -p "$TOP"/{SOURCES,SPECS,BUILD,RPMS,SRPMS}
-cp "$BIN"                                   "$TOP/SOURCES/voxelklon-bin"
-cp build/linux/VoxelKlon.pck                "$TOP/SOURCES/VoxelKlon.pck"
-cp rpm/voxelklon.sh                         "$TOP/SOURCES/voxelklon.sh"
-cp flatpak/org.voxelklon.VoxelKlon.desktop  "$TOP/SOURCES/"
-cp flatpak/org.voxelklon.VoxelKlon.metainfo.xml "$TOP/SOURCES/"
-cp icon.svg                                 "$TOP/SOURCES/org.voxelklon.VoxelKlon.svg"
-cp rpm/voxelklon.spec                       "$TOP/SPECS/"
+cp "$BIN"                                   "$TOP/SOURCES/creative-craft-bin"
+cp build/linux/CreativeCraft.pck                "$TOP/SOURCES/CreativeCraft.pck"
+cp rpm/creative-craft.sh                         "$TOP/SOURCES/creative-craft.sh"
+cp flatpak/org.creativecraft.CreativeCraft.desktop  "$TOP/SOURCES/"
+cp flatpak/org.creativecraft.CreativeCraft.metainfo.xml "$TOP/SOURCES/"
+tar -cf "$TOP/SOURCES/icons.tar" -C icons .
+cp rpm/creative-craft.spec                       "$TOP/SPECS/"
 
-rpmbuild --define "_topdir $TOP" --define "pkgversion $VERSION" -bb "$TOP/SPECS/voxelklon.spec"
+rpmbuild --define "_topdir $TOP" --define "pkgversion $VERSION" -bb "$TOP/SPECS/creative-craft.spec"
 
-RPM_FILE="$(find "$TOP/RPMS" -name 'voxelklon-*.rpm' | head -n 1)"
+RPM_FILE="$(find "$TOP/RPMS" -name 'creative-craft-*.rpm' | head -n 1)"
 cp "$RPM_FILE" build/
 echo
 echo ">> Fertig: build/$(basename "$RPM_FILE")"
 echo "   Installieren:  sudo dnf install ./build/$(basename "$RPM_FILE")"
 echo "                  (openSUSE: sudo zypper install ./build/$(basename "$RPM_FILE"))"
-echo "   Starten:       voxelklon   (oder über das Anwendungsmenü)"
-echo "   Entfernen:     sudo dnf remove voxelklon"
+echo "   Starten:       creative-craft   (oder über das Anwendungsmenü)"
+echo "   Entfernen:     sudo dnf remove creative-craft"

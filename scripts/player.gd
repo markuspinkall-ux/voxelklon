@@ -5,6 +5,7 @@ extends CharacterBody3D
 const Blocks = preload("res://scripts/blocks.gd")
 const Items = preload("res://scripts/items.gd")
 const Inventory = preload("res://scripts/inventory.gd")
+const HandScript = preload("res://scripts/hand.gd")
 
 const GRAVITY := 28.0
 const JUMP := 8.6
@@ -21,6 +22,7 @@ var inventory = Inventory.new()
 var head: Node3D
 var camera: Camera3D
 var highlight: MeshInstance3D
+var hand
 var selected := 0
 var max_health := 20.0
 var health := 20.0
@@ -63,6 +65,9 @@ func _ready() -> void:
 	camera.far = 400.0
 	head.add_child(camera)
 	camera.current = true
+	hand = HandScript.new()
+	hand.player = self
+	camera.add_child(hand)
 	highlight = _make_highlight()
 	add_child(highlight)
 	highlight.top_level = true
@@ -109,6 +114,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			MOUSE_BUTTON_WHEEL_DOWN:
 				selected = posmod(selected + 1, 9)
 			MOUSE_BUTTON_LEFT:
+				hand.swing()
 				_attack()
 	elif event is InputEventKey and event.pressed and not event.echo:
 		var k: int = event.physical_keycode
@@ -172,6 +178,7 @@ func _physics_process(delta: float) -> void:
 func _process(delta: float) -> void:
 	if dead:
 		highlight.visible = false
+		hand.mining = false
 		return
 	invuln = maxf(invuln - delta, 0.0)
 	use_cd -= delta
@@ -212,6 +219,7 @@ func _process(delta: float) -> void:
 	else:
 		mining_progress = 0.0
 		mining_pos = Vector3i(0, -999, 0)
+	hand.mining = active and hit and not mob_closer and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 
 	if active and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) and use_cd <= 0.0:
 		use_cd = 0.25
@@ -328,6 +336,8 @@ func _use() -> void:
 		p = target["pos"]
 		n = target["normal"]
 		var id: int = world.get_block(p.x, p.y, p.z)
+		if id == Blocks.CRAFTING_TABLE or id == Blocks.CHEST or id == Blocks.FURNACE:
+			hand.swing()
 		if id == Blocks.CRAFTING_TABLE:
 			ui.open_crafting()
 			use_cd = 0.5
@@ -350,6 +360,7 @@ func _use() -> void:
 		if health < max_health:
 			health = minf(max_health, health + float(it["food"]))
 			_consume_one()
+			hand.swing()
 			ui.message("Mampf! +%d Leben" % int(it["food"]))
 		return
 
@@ -361,6 +372,7 @@ func _use() -> void:
 				world.set_block(wp.x, wp.y, wp.z, Blocks.AIR)
 				world.fill_water_if_adjacent(wp.x, wp.y, wp.z)
 				_replace_one("water_bucket")
+				hand.swing()
 		return
 
 	if not hit:
@@ -376,6 +388,7 @@ func _use() -> void:
 			world.set_block(place.x, place.y, place.z, Blocks.WATER)
 			world.water_fall(place.x, place.y, place.z)
 			_replace_one("bucket")
+			hand.swing()
 		return
 
 	var b: int = it["block"]
@@ -397,6 +410,7 @@ func _use() -> void:
 		world.orient[place] = _facing_face()
 	world.set_block(place.x, place.y, place.z, b)
 	_consume_one()
+	hand.swing()
 
 
 func _replaceable(id: int) -> bool:

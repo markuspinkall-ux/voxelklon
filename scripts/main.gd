@@ -10,6 +10,7 @@ const WorldScript = preload("res://scripts/world.gd")
 const PlayerScript = preload("res://scripts/player.gd")
 const UIScript = preload("res://scripts/ui.gd")
 const MobScript = preload("res://scripts/mob.gd")
+const MenuScript = preload("res://scripts/menu.gd")
 
 const DAY_LENGTH := 600.0   # Sekunden für einen ganzen Tag (wie Minecraft: 20 min -> hier 10 min)
 const MAX_HOSTILE := 10
@@ -33,16 +34,38 @@ var was_night := false
 var world_seed := 0
 
 
+var atlas_img: Image
+var menu
+
+
 func _ready() -> void:
+	set_process(false)
 	_setup_input()
 	randomize()
-	world_seed = randi() % 1000000
-	var atlas_img: Image = TextureGen.build()
+	atlas_img = TextureGen.build()
 	Items.setup(atlas_img)
 	Recipes.setup()
+	# Für automatische Tests: godot --headless --path . -- --autostart
+	if "--autostart" in OS.get_cmdline_user_args():
+		_start_game(12345, 3)
+		return
+	menu = MenuScript.new()
+	menu.atlas = atlas_img
+	add_child(menu)
+	menu.start_requested.connect(_start_game)
+
+
+func _start_game(seed_value: int, radius: int) -> void:
+	world_seed = seed_value
+	if menu != null:
+		menu.show_loading()
+		# zwei Frames warten, damit der Ladehinweis angezeigt wird
+		await get_tree().process_frame
+		await get_tree().process_frame
 	_setup_environment()
 
 	world = WorldScript.new()
+	world.render_radius = radius
 	add_child(world)
 	world.setup(world_seed, ImageTexture.create_from_image(atlas_img))
 	world.village_ready.connect(_on_village_ready)
@@ -66,8 +89,17 @@ func _ready() -> void:
 	player.spawn_point = player.position
 	add_child(player)
 	add_child(ui)
-	ui.message("Willkommen! Schlag einen Baum (Linksklick halten) – E: Inventar, R: Rezeptbuch")
-	print("VoxelKlon gestartet (Seed %d, %d Chunks geladen)" % [world_seed, world.chunk_nodes.size()])
+	if menu != null:
+		menu.queue_free()
+		menu = null
+	set_process(true)
+	ui.message("Willkommen in Creative Craft! Schlag einen Baum (Linksklick halten) – E: Inventar, R: Rezeptbuch")
+	print("Creative Craft gestartet (Seed %d, %d Chunks geladen)" % [world_seed, world.chunk_nodes.size()])
+
+
+func back_to_menu() -> void:
+	get_tree().paused = false
+	get_tree().reload_current_scene()
 
 
 func _setup_input() -> void:
@@ -77,8 +109,9 @@ func _setup_input() -> void:
 		"jump": [KEY_SPACE], "sprint": [KEY_CTRL, KEY_SHIFT],
 	}
 	for action in map:
-		if not InputMap.has_action(action):
-			InputMap.add_action(action)
+		if InputMap.has_action(action):
+			continue
+		InputMap.add_action(action)
 		for k in map[action]:
 			var ev := InputEventKey.new()
 			ev.physical_keycode = k

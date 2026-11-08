@@ -1,12 +1,12 @@
 ; Engine configuration file.
-; Voxel-Klon (Minecraft-artig) für Godot 4.3+
+; Creative Craft (Minecraft-artig) für Godot 4.3+
 
 config_version=5
 
 [application]
 
-config/name="VoxelKlon"
-config/description="Ein Minecraft-artiger Voxel-Klon mit Crafting, Monstern, Dörfern und Wasser."
+config/name="Creative Craft"
+config/description="Bauen, craften und überleben in einer Voxel-Welt."
 run/main_scene="res://main.tscn"
 config/features=PackedStringArray("4.3", "Forward Plus")
 config/icon="res://icon.svg"
