@@ -221,7 +221,7 @@ static func _px(img: Image, tile: int, x: int, y: int, c: Color) -> void:
 	img.set_pixel(o.x + x, o.y + y, c)
 
 
-static func _get(img: Image, tile: int, x: int, y: int) -> Color:
+static func _getpx(img: Image, tile: int, x: int, y: int) -> Color:
 	var o := _o(tile)
 	return img.get_pixel(o.x + x, o.y + y)
 
@@ -245,7 +245,7 @@ static func _specks(img: Image, tile: int, c: Color, n: int) -> void:
 static func _copy(img: Image, src: int, dst: int) -> void:
 	for y in T:
 		for x in T:
-			_px(img, dst, x, y, _get(img, src, x, y))
+			_px(img, dst, x, y, _getpx(img, src, x, y))
 
 
 static func _rect(img: Image, tile: int, x: int, y: int, w: int, h: int, c: Color) -> void:
