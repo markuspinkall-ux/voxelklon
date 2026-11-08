@@ -5,7 +5,7 @@
 %global appid org.creativecraft.CreativeCraft
 
 Name:           creative-craft
-Version:        %{?pkgversion}%{!?pkgversion:0.2.0}
+Version:        %{?pkgversion}%{!?pkgversion:0.3.0}
 Release:        1%{?dist}
 Summary:        Bauen, craften und überleben in einer Voxel-Welt
 License:        MIT
@@ -59,6 +59,8 @@ done
 %{_datadir}/icons/hicolor/*/apps/%{appid}.png
 
 %changelog
+* Sun Nov 08 2026 Creative Craft <creativecraft@localhost> - 0.3.0-1
+- Speichern/Laden, Schafe, Bett, Schere, TNT, Feuerzeug, Farbstoffe, Steuerung im Esc-Menü
 * Sun Nov 08 2026 Creative Craft <creativecraft@localhost> - 0.2.0-1
 - Umbenannt in Creative Craft, Startmenü, animierte Hand, Menü-Icons
 * Sun Nov 08 2026 Creative Craft <creativecraft@localhost> - 0.1.0-1

@@ -7,7 +7,7 @@ Komplett in GDScript, ohne externe Assets: alle Texturen und Icons werden beim S
 Fertige Builds (automatisch bei jedem Push gebaut): **https://github.com/markuspinkall-ux/voxelklon/releases/tag/latest**
 
 - Flatpak: `flatpak install --user CreativeCraft.flatpak` → `flatpak run org.creativecraft.CreativeCraft`
-- RPM: `sudo dnf install ./creative-craft-0.2.0-1.x86_64.rpm` → `creative-craft`
+- RPM: `sudo dnf install ./creative-craft-0.3.0-1.x86_64.rpm` → `creative-craft`
 
 ## Features
 
@@ -90,7 +90,7 @@ Beim ersten Öffnen importiert Godot das Projekt – das dauert ein paar Sekunde
 sudo dnf install rpm-build godot            # openSUSE: sudo zypper install rpm-build godot
 chmod +x rpm/build-rpm.sh
 ./rpm/build-rpm.sh
-sudo dnf install ./build/creative-craft-0.2.0-1*.x86_64.rpm
+sudo dnf install ./build/creative-craft-0.3.0-1*.x86_64.rpm
 creative-craft                               # oder über das Anwendungsmenü starten
 ```
 
