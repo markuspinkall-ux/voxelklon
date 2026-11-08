@@ -7,6 +7,7 @@ const Blocks = preload("res://scripts/blocks.gd")
 const ChunkScript = preload("res://scripts/chunk.gd")
 
 signal village_ready(village: Dictionary)
+signal chunk_built(c: Vector2i)
 
 const CS := 16
 const H := 80
@@ -33,6 +34,8 @@ var loot_chests := {}   # Vector3i -> true (Dorftruhen mit Beute)
 var orient := {}        # Vector3i -> Flächenindex der Vorderseite (Ofen/Truhe)
 var dirty := {}         # Vector3i(cx, section, cz) -> true
 var load_queue: Array = []
+var modified := {}      # Vector2i -> true (vom Spieler veränderte Chunks, werden gespeichert)
+var saved_chunks := {}  # Vector2i -> [komprimierte Daten, maxy] aus einem Spielstand
 var last_pc := Vector2i(999999, 999999)
 
 var mat_opaque: StandardMaterial3D
@@ -124,6 +127,13 @@ func _surface(h: int, x: int, z: int) -> Vector2i:
 
 
 func generate_chunk_data(c: Vector2i) -> void:
+	if saved_chunks.has(c):
+		var e: Array = saved_chunks[c]
+		var raw: PackedByteArray = e[0]
+		chunk_data[c] = raw.decompress(CS * CS * H, FileAccess.COMPRESSION_ZSTD)
+		chunk_maxy[c] = int(e[1])
+		modified[c] = true
+		return
 	var data := PackedByteArray()
 	data.resize(CS * CS * H)
 	data.fill(0)
@@ -474,6 +484,7 @@ func set_block(x: int, y: int, z: int, id: int) -> void:
 	var lz := z & 15
 	d[lx + lz * CS + y * 256] = id
 	chunk_data[c] = d
+	modified[c] = true
 	if y + 1 > int(chunk_maxy[c]):
 		chunk_maxy[c] = mini(H - 1, y + 1)
 	if id != Blocks.FURNACE and id != Blocks.CHEST:
@@ -669,3 +680,16 @@ func _build_chunk(c: Vector2i) -> void:
 	node.build_all()
 	chunk_nodes[c] = node
 	_check_village_spawn(c)
+	chunk_built.emit(c)
+
+
+## Für den Spielstand: alle veränderten Chunks komprimiert (inkl. früher geladener)
+func export_modified() -> Dictionary:
+	var out := {}
+	for c in saved_chunks:
+		out[c] = saved_chunks[c]
+	for c in modified:
+		if chunk_data.has(c):
+			var d: PackedByteArray = chunk_data[c]
+			out[c] = [d.compress(FileAccess.COMPRESSION_ZSTD), chunk_maxy[c]]
+	return out

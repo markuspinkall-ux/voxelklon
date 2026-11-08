@@ -208,7 +208,51 @@ static func build() -> Image:
 			var xx := bx + int(float(i) / float(bh) * lean * 2.0)
 			_px(img, B.T_SHORT_GRASS, clampi(xx, 0, 15), 15 - i, _vary(Color(0.33, 0.60, 0.22), 0.15))
 
+	# --- Wolle ---
+	_wool(img, B.T_WOOL_WHITE, Color(0.92, 0.92, 0.92))
+	_wool(img, B.T_WOOL_RED, Color(0.70, 0.16, 0.15))
+	_wool(img, B.T_WOOL_YELLOW, Color(0.97, 0.78, 0.18))
+
+	# --- Bett: rote Decke mit weißem Kissen, Seite mit Holzrahmen ---
+	_wool(img, B.T_BED_TOP, Color(0.70, 0.16, 0.15))
+	_rect(img, B.T_BED_TOP, 2, 1, 12, 4, Color(0.94, 0.94, 0.94))
+	_border(img, B.T_BED_TOP, Color(0.50, 0.10, 0.10))
+	_copy(img, B.T_PLANKS, B.T_BED_SIDE)
+	_rect(img, B.T_BED_SIDE, 0, 0, 16, 6, Color(0.70, 0.16, 0.15))
+	_rect(img, B.T_BED_SIDE, 0, 6, 16, 3, Color(0.94, 0.94, 0.94))
+	_rect(img, B.T_BED_SIDE, 0, 13, 3, 3, Color(0.40, 0.28, 0.15))
+	_rect(img, B.T_BED_SIDE, 13, 13, 3, 3, Color(0.40, 0.28, 0.15))
+	for x in range(3, 13):
+		for y in range(13, 16):
+			_px(img, B.T_BED_SIDE, x, y, Color(0, 0, 0, 0))
+
+	# --- TNT ---
+	_noise(img, B.T_TNT_SIDE, Color(0.80, 0.18, 0.12), 0.08)
+	for x in T:
+		_px(img, B.T_TNT_SIDE, x, 0, Color(0.55, 0.10, 0.08))
+		if x % 4 == 0:
+			for y in T:
+				_px(img, B.T_TNT_SIDE, x, y, _vary(Color(0.62, 0.12, 0.09), 0.05))
+	_rect(img, B.T_TNT_SIDE, 0, 5, 16, 6, Color(0.92, 0.90, 0.86))
+	var tnt := ["X X XX X X X", "  X  X XX  X", "  X  X X X X", "  X  X X  XX"]
+	for r in tnt.size():
+		var row: String = tnt[r]
+		for i in row.length():
+			if row[i] == "X":
+				_px(img, B.T_TNT_SIDE, 2 + i, 6 + r, Color(0.10, 0.10, 0.10))
+	_noise(img, B.T_TNT_TOP, Color(0.80, 0.18, 0.12), 0.08)
+	_rect(img, B.T_TNT_TOP, 5, 5, 6, 6, Color(0.88, 0.86, 0.80))
+	_rect(img, B.T_TNT_TOP, 7, 7, 2, 2, Color(0.15, 0.15, 0.15))
+	_noise(img, B.T_TNT_BOTTOM, Color(0.75, 0.16, 0.11), 0.08)
+
 	return img
+
+
+static func _wool(img: Image, tile: int, c: Color) -> void:
+	for y in T:
+		for x in T:
+			var f := 1.0 - 0.07 * float((x + y * 2) % 3)
+			_px(img, tile, x, y, _vary(Color(c.r * f, c.g * f, c.b * f), 0.05))
 
 
 # ---------------------------------------------------------------------------

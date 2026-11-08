@@ -36,13 +36,14 @@ jobs:
       - name: Spiel testweise starten (Skriptfehler finden)
         run: |
           set +e
-          timeout 180 godot --headless --path . --quit-after 900 -- --autostart > run.log 2>&1
+          timeout 180 godot --headless --path . --quit-after 900 -- --autostart --savetest > run.log 2>&1
           cat run.log
-          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Invalid call|Invalid access" run.log; then
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Invalid call|Invalid access|Speichertest fehlgeschlagen" run.log; then
             echo "::error::Skriptfehler gefunden – siehe Log oben"
             exit 1
           fi
           grep -q "Creative Craft gestartet" run.log || { echo "::error::Spiel ist nicht vollständig gestartet"; exit 1; }
+          grep -q "Speichertest OK" run.log || { echo "::error::Speichern/Laden funktioniert nicht"; exit 1; }
 
       - name: Linux-Export
         run: |

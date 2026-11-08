@@ -1,6 +1,7 @@
 extends CharacterBody3D
 ## Kreaturen: Zombie (greift an, verbrennt am Tag), Creeper (zischt und explodiert)
-## und Villager (laufen friedlich durchs Dorf, fliehen wenn man sie schlägt).
+## Villager (laufen friedlich durchs Dorf, fliehen wenn man sie schlägt)
+## und Schafe (Wolle durch Scheren oder Töten, wächst nach).
 ## Modelle werden aus einfachen Boxen gebaut (Minecraft-Stil).
 
 const Blocks = preload("res://scripts/blocks.gd")
@@ -28,6 +29,9 @@ var knock := Vector3.ZERO
 var burn_t := 0.0
 var last_flash := -1.0
 var dead := false
+var sheared := false
+var regrow_t := 0.0
+var wool_node: MeshInstance3D
 
 
 func _ready() -> void:
@@ -47,6 +51,11 @@ func _ready() -> void:
 			hostile = false
 			speed = 1.3
 			height = 1.9
+		"sheep":
+			hostile = false
+			speed = 1.1
+			height = 1.25
+			health = 8.0
 	var cs := CollisionShape3D.new()
 	var cap := CapsuleShape3D.new()
 	cap.radius = 0.3
@@ -63,6 +72,8 @@ func _ready() -> void:
 			_build_creeper()
 		"villager":
 			_build_villager()
+		"sheep":
+			_build_sheep()
 	if home == Vector3.ZERO:
 		home = global_position
 	rotation.y = randf() * TAU
@@ -138,6 +149,30 @@ func _build_villager() -> void:
 	_part(model, Vector3(0.56, 0.18, 0.22), Vector3(0, 1.05, -0.24), robe.darkened(0.12))
 
 
+func _build_sheep() -> void:
+	var skin := Color(0.78, 0.70, 0.66)
+	for p in [Vector2(-0.17, -0.32), Vector2(0.17, -0.32), Vector2(-0.17, 0.32), Vector2(0.17, 0.32)]:
+		var lp := _pivot(model, Vector3(p.x, 0.5, p.y))
+		_part(lp, Vector3(0.16, 0.5, 0.16), Vector3(0, -0.25, 0), skin)
+		legs.append(lp)
+	_part(model, Vector3(0.48, 0.42, 0.86), Vector3(0, 0.72, 0), skin)
+	wool_node = _part(model, Vector3(0.66, 0.6, 1.0), Vector3(0, 0.78, 0), Color(0.93, 0.93, 0.93))
+	_part(model, Vector3(0.36, 0.36, 0.42), Vector3(0, 1.0, -0.62), skin)
+	_part(model, Vector3(0.42, 0.22, 0.2), Vector3(0, 1.12, -0.52), Color(0.93, 0.93, 0.93))
+	_part(model, Vector3(0.07, 0.07, 0.02), Vector3(-0.11, 1.04, -0.84), Color(0.08, 0.08, 0.08))
+	_part(model, Vector3(0.07, 0.07, 0.02), Vector3(0.11, 1.04, -0.84), Color(0.08, 0.08, 0.08))
+
+
+## Schaf scheren: true wenn erfolgreich
+func shear() -> bool:
+	if kind != "sheep" or sheared or dead:
+		return false
+	sheared = true
+	regrow_t = randf_range(60.0, 120.0)
+	wool_node.visible = false
+	return true
+
+
 # ---------------------------------------------------------------------------
 # KI & Physik
 func _physics_process(delta: float) -> void:
@@ -175,6 +210,17 @@ func _physics_process(delta: float) -> void:
 					dir = flat.normalized()
 				else:
 					dir = _wander(delta, 10.0)
+		"sheep":
+			if sheared:
+				regrow_t -= delta
+				if regrow_t <= 0.0:
+					sheared = false
+					wool_node.visible = true
+			if flee_t > 0.0 and flat.length() > 0.01:
+				dir = -flat.normalized()
+				spd = 3.2
+			else:
+				dir = _wander(delta, 8.0)
 		"villager":
 			if flee_t > 0.0 and flat.length() > 0.01:
 				dir = -flat.normalized()
@@ -281,7 +327,7 @@ func hurt(amount: float, from_pos: Vector3, attacker) -> void:
 	if k.length() > 0.01:
 		knock = k.normalized() * 6.0
 		velocity.y = 4.5
-	if kind == "villager":
+	if kind == "villager" or kind == "sheep":
 		flee_t = 4.0
 	if kind == "creeper":
 		fuse = 0.0
@@ -297,6 +343,10 @@ func _die(attacker) -> void:
 			player.give_item("rotten_flesh", n)
 		elif kind == "creeper" and n > 0:
 			player.give_item("gunpowder", n)
+		elif kind == "sheep":
+			if not sheared:
+				player.give_item("white_wool", 1)
+			player.give_item("raw_mutton", 1 + randi() % 2)
 	queue_free()
 
 

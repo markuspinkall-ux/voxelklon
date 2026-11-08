@@ -32,7 +32,12 @@ const DANDELION := 27
 const SHORT_GRASS := 28
 const DIRT_PATH := 29
 const SNOWY_GRASS := 30
-const COUNT := 31
+const WHITE_WOOL := 31
+const RED_WOOL := 32
+const YELLOW_WOOL := 33
+const BED := 34
+const TNT := 35
+const COUNT := 36
 
 # Kachel-Indizes im Textur-Atlas (8x8 Kacheln à 16 px)
 const T_GRASS_TOP := 0
@@ -74,6 +79,14 @@ const T_SHORT_GRASS := 35
 const T_PATH_TOP := 36
 const T_PATH_SIDE := 37
 const T_SANDSTONE_TOP := 38
+const T_WOOL_WHITE := 39
+const T_WOOL_RED := 40
+const T_WOOL_YELLOW := 41
+const T_BED_TOP := 42
+const T_BED_SIDE := 43
+const T_TNT_TOP := 44
+const T_TNT_SIDE := 45
+const T_TNT_BOTTOM := 46
 
 # Darstellungsarten
 const CUBE := 0
@@ -135,6 +148,11 @@ static func setup() -> void:
 	_d(SHORT_GRASS, "short_grass", "Gras", [T_SHORT_GRASS, T_SHORT_GRASS, T_SHORT_GRASS], CROSS, false, false, 0.0, "", -1)
 	_d(DIRT_PATH, "dirt_path", "Trampelpfad", [T_PATH_TOP, T_DIRT, T_PATH_SIDE], CUBE, true, true, 0.65, "shovel", -1)
 	_d(SNOWY_GRASS, "snowy_grass", "Verschneiter Grasblock", [T_SNOW, T_DIRT, T_SNOW_SIDE], CUBE, true, true, 0.6, "shovel", -1)
+	_d(WHITE_WOOL, "white_wool", "Weiße Wolle", [T_WOOL_WHITE, T_WOOL_WHITE, T_WOOL_WHITE], CUBE, true, true, 0.8, "shears", -1)
+	_d(RED_WOOL, "red_wool", "Rote Wolle", [T_WOOL_RED, T_WOOL_RED, T_WOOL_RED], CUBE, true, true, 0.8, "shears", -1)
+	_d(YELLOW_WOOL, "yellow_wool", "Gelbe Wolle", [T_WOOL_YELLOW, T_WOOL_YELLOW, T_WOOL_YELLOW], CUBE, true, true, 0.8, "shears", -1)
+	_d(BED, "bed", "Bett", [T_BED_TOP, T_PLANKS, T_BED_SIDE], CUBE, true, true, 0.2, "axe", -1)
+	_d(TNT, "tnt", "TNT", [T_TNT_TOP, T_TNT_BOTTOM, T_TNT_SIDE], CUBE, true, true, 0.0, "", -1)
 
 
 static func _d(id: int, item: String, name: String, tiles: Array, k: int, is_solid: bool, is_opaque: bool, hardness: float, tool: String, tier: int) -> void:
@@ -173,6 +191,10 @@ static func get_drops(id: int, rng: RandomNumberGenerator) -> Array:
 			return []
 		SNOW:
 			return [["snowball", 4]]
+		GRAVEL:
+			if rng.randf() < 0.1:
+				return [["flint", 1]]
+			return [["gravel", 1]]
 		GLASS, SHORT_GRASS, WATER, BEDROCK, AIR:
 			return []
 	var it: String = defs[id]["item"]

@@ -18,6 +18,11 @@ static func setup() -> void:
 	_sl(["iron_block"], "iron_ingot", 9)
 	_sl(["diamond_block"], "diamond", 9)
 	_sl(["coal_block"], "coal", 9)
+	_sl(["iron_ingot", "flint"], "flint_and_steel", 1)
+	_sl(["poppy"], "red_dye", 1)
+	_sl(["dandelion"], "yellow_dye", 1)
+	_sl(["red_dye", "white_wool"], "red_wool", 1)
+	_sl(["yellow_dye", "white_wool"], "yellow_wool", 1)
 
 	# --- Grundlagen ---
 	_s(["P", "P"], {"P": "oak_planks"}, "stick", 4)
@@ -37,6 +42,11 @@ static func setup() -> void:
 
 	# --- Sonstiges ---
 	_s(["I I", " I "], {"I": "iron_ingot"}, "bucket", 1)
+	_s([" I", "I "], {"I": "iron_ingot"}, "shears", 1)
+	# Bett: 3 gleichfarbige Wolle über 3 Brettern
+	for w in ["white_wool", "red_wool", "yellow_wool"]:
+		_s(["WWW", "PPP"], {"W": w, "P": "oak_planks"}, "bed", 1)
+	_s(["GSG", "SGS", "GSG"], {"G": "gunpowder", "S": "sand"}, "tnt", 1)
 	_s(["SS", "SS"], {"S": "stone"}, "stone_bricks", 4)
 	_s(["SS", "SS"], {"S": "sand"}, "sandstone", 1)
 	_s(["SS", "SS"], {"S": "snowball"}, "snow_block", 1)
@@ -51,6 +61,7 @@ static func setup() -> void:
 		"sand": "glass",
 		"cobblestone": "stone",
 		"oak_log": "charcoal",
+		"raw_mutton": "cooked_mutton",
 	}
 
 
@@ -143,7 +154,11 @@ static func describe() -> String:
 			parts.append(_n(i))
 		lines.append("- [b]%s[/b] x%d  =  %s" % [_n(r["out"]), int(r["count"]), " + ".join(parts)])
 	lines.append("\n[u]Geformt[/u]")
+	var seen := {}
 	for r in shaped:
+		if seen.has(r["out"]):
+			continue
+		seen[r["out"]] = true
 		var pat: Array = r["pattern"]
 		var rows := PackedStringArray()
 		var wide := pat.size() > 2
@@ -164,6 +179,8 @@ static func describe() -> String:
 				nm = " oder ".join(alt)
 			else:
 				nm = _n(v)
+			if r["out"] == "bed" and k == "W":
+				nm = "Wolle (3x gleiche Farbe)"
 			legend.append("%s = %s" % [k, nm])
 		var where := " (Werkbank)" if wide else ""
 		lines.append("- [b]%s[/b] x%d%s:  [code]%s[/code]   %s" % [_n(r["out"]), int(r["count"]), where, " / ".join(rows), ", ".join(legend)])

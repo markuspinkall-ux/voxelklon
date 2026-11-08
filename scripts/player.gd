@@ -332,6 +332,17 @@ func _use() -> void:
 	var hit: bool = target.get("hit", false)
 	var p := Vector3i.ZERO
 	var n := Vector3i.ZERO
+	var held = _held()
+	# Schaf scheren
+	if held != null and held["id"] == "shears":
+		var mh := _ray_mob()
+		if not mh.is_empty() and (not hit or camera.global_position.distance_to(mh["position"]) < float(target["dist"])):
+			var mob = mh["collider"]
+			if mob != null and mob.has_method("shear") and mob.shear():
+				give_item("white_wool", 1 + rng.randi_range(0, 2))
+				_damage_tool()
+				hand.swing()
+				return
 	if hit:
 		p = target["pos"]
 		n = target["normal"]
@@ -349,6 +360,17 @@ func _use() -> void:
 		if id == Blocks.FURNACE:
 			ui.open_furnace(main.get_furnace(p))
 			use_cd = 0.5
+			return
+		if id == Blocks.BED:
+			hand.swing()
+			main.try_sleep(p)
+			use_cd = 0.5
+			return
+		if id == Blocks.TNT and held != null and held["id"] == "flint_and_steel":
+			world.set_block(p.x, p.y, p.z, Blocks.AIR)
+			main.prime_tnt(p, 4.0)
+			_damage_tool()
+			hand.swing()
 			return
 	var st = _held()
 	if st == null:

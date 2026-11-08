@@ -5,6 +5,7 @@ extends CanvasLayer
 const Items = preload("res://scripts/items.gd")
 const Recipes = preload("res://scripts/recipes.gd")
 const SlotScript = preload("res://scripts/slot.gd")
+const Controls = preload("res://scripts/controls.gd")
 
 var player
 var main
@@ -25,6 +26,9 @@ var water_rect: ColorRect
 var pause_label: Label
 var death_panel: Control
 var pause_panel: Control
+var pause_buttons: VBoxContainer
+var pause_controls: VBoxContainer
+var fade_rect: ColorRect
 
 var screen: Control
 var title: Label
@@ -223,12 +227,6 @@ func _build_hud() -> void:
 	info.position = Vector2(10, 8)
 	hud.add_child(info)
 
-	var help := _label("WASD Laufen · Leertaste Springen/Schwimmen · Strg/Shift Sprinten · LMB Abbauen/Angreifen · RMB Platzieren/Benutzen · E Inventar · R Rezeptbuch · 1-9/Mausrad · Q Wegwerfen · Esc Pause · F11 Vollbild", 13, Color(1, 1, 1, 0.8))
-	help.anchor_top = 1.0
-	help.anchor_bottom = 1.0
-	help.offset_left = 10
-	help.offset_top = -26
-	hud.add_child(help)
 
 	msg = _label("", 20, Color(1, 1, 0.75))
 	msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -427,23 +425,75 @@ func _build_screen() -> void:
 
 func _build_pause() -> void:
 	pause_panel = ColorRect.new()
-	(pause_panel as ColorRect).color = Color(0.07, 0.08, 0.11, 0.78)
+	(pause_panel as ColorRect).color = Color(0.07, 0.08, 0.11, 0.82)
 	pause_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	pause_panel.visible = false
 	add_child(pause_panel)
 	var c := CenterContainer.new()
 	c.set_anchors_preset(Control.PRESET_FULL_RECT)
 	pause_panel.add_child(c)
-	var vb := VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 14)
-	vb.custom_minimum_size = Vector2(380, 0)
-	c.add_child(vb)
+	var stack := VBoxContainer.new()
+	c.add_child(stack)
+
+	pause_buttons = VBoxContainer.new()
+	pause_buttons.add_theme_constant_override("separation", 14)
+	pause_buttons.custom_minimum_size = Vector2(380, 0)
+	stack.add_child(pause_buttons)
 	var l := _label("Spiel pausiert", 40, Color("#dce6ff"))
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vb.add_child(l)
-	vb.add_child(_menu_button("Weiterspielen", close_pause, true))
-	vb.add_child(_menu_button("Zum Hauptmenü", func(): main.back_to_menu(), false))
-	vb.add_child(_menu_button("Spiel beenden", func(): get_tree().quit(), false))
+	pause_buttons.add_child(l)
+	pause_buttons.add_child(_menu_button("Weiterspielen", close_pause, true))
+	pause_buttons.add_child(_menu_button("Speichern", _on_pause_save, false))
+	pause_buttons.add_child(_menu_button("Steuerung", _show_pause_controls.bind(true), false))
+	pause_buttons.add_child(_menu_button("Speichern & zum Hauptmenü", func(): main.back_to_menu(), false))
+	pause_buttons.add_child(_menu_button("Speichern & beenden", func(): main.quit_game(), false))
+
+	pause_controls = VBoxContainer.new()
+	pause_controls.add_theme_constant_override("separation", 14)
+	pause_controls.visible = false
+	stack.add_child(pause_controls)
+	var h := _label("Steuerung", 32, Color("#dce6ff"))
+	h.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pause_controls.add_child(h)
+	var pc := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#1c2029")
+	sb.border_color = Color(1, 1, 1, 0.08)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(12)
+	sb.set_content_margin_all(14)
+	pc.add_theme_stylebox_override("panel", sb)
+	pause_controls.add_child(pc)
+	var rtl := RichTextLabel.new()
+	rtl.bbcode_enabled = true
+	rtl.custom_minimum_size = Vector2(640, 400)
+	rtl.add_theme_color_override("default_color", Color("#dce6ff"))
+	rtl.add_theme_font_size_override("normal_font_size", 15)
+	rtl.add_theme_font_size_override("bold_font_size", 15)
+	rtl.text = Controls.TEXT
+	pc.add_child(rtl)
+	pause_controls.add_child(_menu_button("Zurück", _show_pause_controls.bind(false), false))
+
+	fade_rect = ColorRect.new()
+	fade_rect.color = Color(0, 0, 0, 0)
+	fade_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fade_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(fade_rect)
+
+
+func _on_pause_save() -> void:
+	if main.save_game():
+		message("Welt gespeichert")
+	close_pause()
+
+
+func _show_pause_controls(show: bool) -> void:
+	pause_controls.visible = show
+	pause_buttons.visible = not show
+
+
+func sleep_fade() -> void:
+	fade_rect.color = Color(0, 0, 0, 1)
 
 
 func _menu_button(text: String, cb: Callable, primary: bool) -> Button:
@@ -471,6 +521,8 @@ func _menu_button(text: String, cb: Callable, primary: bool) -> Button:
 func open_pause() -> void:
 	mode = "pause"
 	pause_panel.visible = true
+	pause_buttons.visible = true
+	pause_controls.visible = false
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	get_tree().paused = true
 
@@ -595,7 +647,10 @@ func _input(event: InputEvent) -> void:
 				close()
 			get_viewport().set_input_as_handled()
 		KEY_ESCAPE:
-			if mode == "pause":
+			if mode == "pause" and pause_controls.visible:
+				pause_controls.visible = false
+				pause_buttons.visible = true
+			elif mode == "pause":
 				close_pause()
 			elif mode != "":
 				close()
@@ -843,6 +898,8 @@ func _process(delta: float) -> void:
 	msg_t -= delta
 	msg.modulate.a = clampf(msg_t, 0.0, 1.0)
 	hurt_rect.color = Color(1, 0, 0, maxf(hurt_rect.color.a - delta * 1.2, 0.0))
+	if fade_rect.color.a > 0.0:
+		fade_rect.color = Color(0, 0, 0, maxf(fade_rect.color.a - delta * 0.7, 0.0))
 	water_rect.visible = player.head_in_water
 	pause_label.visible = mode == "" and not player.dead and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED
 

@@ -11,6 +11,7 @@ const PlayerScript = preload("res://scripts/player.gd")
 const UIScript = preload("res://scripts/ui.gd")
 const MobScript = preload("res://scripts/mob.gd")
 const MenuScript = preload("res://scripts/menu.gd")
+const BlockMesh = preload("res://scripts/block_mesh.gd")
 
 const DAY_LENGTH := 600.0   # Sekunden für einen ganzen Tag (wie Minecraft: 20 min -> hier 10 min)
 const MAX_HOSTILE := 10
@@ -36,10 +37,17 @@ var world_seed := 0
 
 var atlas_img: Image
 var menu
+var save_title := "Neue Welt"
+var save_folder := ""
+var tnts: Array = []
+var animal_chunks := {}
+const AUTOSAVE_EVERY := 180.0
+var autosave_t := AUTOSAVE_EVERY
 
 
 func _ready() -> void:
 	set_process(false)
+	get_tree().auto_accept_quit = false
 	_setup_input()
 	randomize()
 	atlas_img = TextureGen.build()
@@ -47,16 +55,19 @@ func _ready() -> void:
 	Recipes.setup()
 	# Für automatische Tests: godot --headless --path . -- --autostart
 	if "--autostart" in OS.get_cmdline_user_args():
-		_start_game(12345, 3)
+		_start_game(12345, 3, "Testwelt", "", null)
 		return
 	menu = MenuScript.new()
 	menu.atlas = atlas_img
 	add_child(menu)
-	menu.start_requested.connect(_start_game)
+	menu.start_requested.connect(func(sv: int, r: int, title: String): _start_game(sv, r, title, "", null))
+	menu.load_requested.connect(func(folder: String, data: Dictionary, r: int): _start_game(int(data["seed"]), r, str(data["name"]), folder, data))
 
 
-func _start_game(seed_value: int, radius: int) -> void:
+func _start_game(seed_value: int, radius: int, title: String, folder: String, data) -> void:
 	world_seed = seed_value
+	save_title = title
+	save_folder = folder if folder != "" else _new_folder_name(title)
 	if menu != null:
 		menu.show_loading()
 		# zwei Frames warten, damit der Ladehinweis angezeigt wird
@@ -69,6 +80,7 @@ func _start_game(seed_value: int, radius: int) -> void:
 	add_child(world)
 	world.setup(world_seed, ImageTexture.create_from_image(atlas_img))
 	world.village_ready.connect(_on_village_ready)
+	world.chunk_built.connect(_on_chunk_built)
 
 	mobs_root = Node3D.new()
 	mobs_root.name = "Mobs"
@@ -82,24 +94,231 @@ func _start_game(seed_value: int, radius: int) -> void:
 	ui.main = self
 	player.ui = ui
 
-	var sp := _find_spawn()
-	world.generate_around(Vector3(sp.x, 0, sp.y), 2)
-	var s: Vector2i = world.surface(sp.x, sp.y)
-	player.position = Vector3(sp.x + 0.5, s.x + 1.05, sp.y + 0.5)
-	player.spawn_point = player.position
+	var pitch := 0.0
+	if data != null:
+		# --- Spielstand laden ---
+		world.saved_chunks = data["chunks"]
+		world.orient = data["orient"]
+		chests = data["chests"]
+		furnaces = data["furnaces"]
+		time_of_day = float(data["time"])
+		day = int(data["day"])
+		var pd: Dictionary = data["player"]
+		var inv: Array = pd["inv"]
+		for i in mini(inv.size(), player.inventory.slots.size()):
+			player.inventory.slots[i] = inv[i]
+		player.selected = int(pd["selected"])
+		player.health = float(pd["health"])
+		player.air = float(pd["air"])
+		player.spawn_point = pd["spawn"]
+		player.rotation.y = float(pd["rot_y"])
+		pitch = float(pd["pitch"])
+		var pos: Vector3 = pd["pos"]
+		world.generate_around(pos, 2)
+		player.position = pos
+	else:
+		var sp := _find_spawn()
+		world.generate_around(Vector3(sp.x, 0, sp.y), 2)
+		var s: Vector2i = world.surface(sp.x, sp.y)
+		player.position = Vector3(sp.x + 0.5, s.x + 1.05, sp.y + 0.5)
+		player.spawn_point = player.position
 	add_child(player)
+	player.head.rotation.x = pitch
 	add_child(ui)
 	if menu != null:
 		menu.queue_free()
 		menu = null
 	set_process(true)
-	ui.message("Willkommen in Creative Craft! Schlag einen Baum (Linksklick halten) – E: Inventar, R: Rezeptbuch")
+	if data != null:
+		ui.message("Welt „%s“ geladen – Tag %d" % [save_title, day])
+	else:
+		ui.message("Willkommen in Creative Craft! Schlag einen Baum (Linksklick halten) – E: Inventar, Esc: Menü")
 	print("Creative Craft gestartet (Seed %d, %d Chunks geladen)" % [world_seed, world.chunk_nodes.size()])
+	if "--savetest" in OS.get_cmdline_user_args():
+		_run_save_test()
+
+
+func _run_save_test() -> void:
+	# Automatischer Test: Block setzen, Truhe füllen, speichern, wieder einlesen
+	var p := Vector3i(floori(player.position.x), floori(player.position.y) + 3, floori(player.position.z))
+	world.set_block(p.x, p.y, p.z, Blocks.TNT)
+	player.inventory.add_item("shears", 1)
+	get_chest(p + Vector3i(1, 0, 0))[0] = Items.make_stack("white_wool", 5)
+	save_folder = "ci-savetest"
+	var ok := save_game()
+	var f := FileAccess.open(SAVE_ROOT + "/" + save_folder + "/world.dat", FileAccess.READ)
+	var data = f.get_var(false) if f != null else null
+	if ok and data is Dictionary and (data["chunks"] as Dictionary).size() > 0 and data["chests"].has(p + Vector3i(1, 0, 0)):
+		var c: Vector2i = Vector2i(p.x >> 4, p.z >> 4)
+		var e: Array = data["chunks"][c]
+		var raw: PackedByteArray = (e[0] as PackedByteArray).decompress(16 * 16 * 80, FileAccess.COMPRESSION_ZSTD)
+		var idx := (p.x & 15) + (p.z & 15) * 16 + p.y * 256
+		if raw[idx] == Blocks.TNT:
+			print("Speichertest OK")
+			return
+	push_error("Speichertest fehlgeschlagen")
 
 
 func back_to_menu() -> void:
+	save_game()
 	get_tree().paused = false
 	get_tree().reload_current_scene()
+
+
+func quit_game() -> void:
+	save_game()
+	get_tree().quit()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		save_game()
+		get_tree().quit()
+
+
+# ---------------------------------------------------------------------------
+# Speichern
+const SAVE_ROOT := "user://saves"
+
+
+func _new_folder_name(title: String) -> String:
+	var base := ""
+	for ch in title.to_lower():
+		if (ch >= "a" and ch <= "z") or (ch >= "0" and ch <= "9"):
+			base += ch
+		elif base != "" and not base.ends_with("-"):
+			base += "-"
+	base = base.trim_suffix("-")
+	if base == "":
+		base = "welt"
+	var fname := base
+	var n := 2
+	while DirAccess.dir_exists_absolute(SAVE_ROOT + "/" + fname):
+		fname = "%s-%d" % [base, n]
+		n += 1
+	return fname
+
+
+func save_game() -> bool:
+	if world == null or player == null:
+		return false
+	if "--autostart" in OS.get_cmdline_user_args() and not "--savetest" in OS.get_cmdline_user_args():
+		return false
+	var dir := SAVE_ROOT + "/" + save_folder
+	DirAccess.make_dir_recursive_absolute(dir)
+	var alive: bool = not player.dead
+	var data := {
+		"version": 1,
+		"name": save_title,
+		"seed": world_seed,
+		"time": time_of_day,
+		"day": day,
+		"player": {
+			"pos": player.global_position if alive else player.spawn_point,
+			"rot_y": player.rotation.y,
+			"pitch": player.head.rotation.x,
+			"health": player.health if alive else player.max_health,
+			"air": player.max_air,
+			"spawn": player.spawn_point,
+			"inv": player.inventory.slots,
+			"selected": player.selected,
+		},
+		"chests": chests,
+		"furnaces": furnaces,
+		"orient": world.orient,
+		"chunks": world.export_modified(),
+	}
+	var f := FileAccess.open(dir + "/world.dat", FileAccess.WRITE)
+	if f == null:
+		push_error("Speichern fehlgeschlagen: %s" % dir)
+		return false
+	f.store_var(data, false)
+	f.close()
+	var cfg := ConfigFile.new()
+	cfg.set_value("save", "name", save_title)
+	cfg.set_value("save", "seed", world_seed)
+	cfg.set_value("save", "day", day)
+	cfg.set_value("save", "time", Time.get_datetime_string_from_system(false, true))
+	cfg.set_value("save", "unix", Time.get_unix_time_from_system())
+	cfg.save(dir + "/meta.cfg")
+	autosave_t = AUTOSAVE_EVERY
+	return true
+
+
+# ---------------------------------------------------------------------------
+# Schlafen & TNT
+func try_sleep(p: Vector3i) -> void:
+	player.spawn_point = Vector3(p.x + 0.5, p.y + 1.1, p.z + 0.5)
+	if daylight >= 0.25:
+		ui.message("Wiedereinstiegspunkt gesetzt. Schlafen kannst du nur nachts.")
+		return
+	for m in mobs_root.get_children():
+		if m.hostile and not m.dead and m.global_position.distance_to(Vector3(p) + Vector3(0.5, 0.5, 0.5)) < 8.0:
+			ui.message("Du kannst jetzt nicht schlafen – Monster in der Nähe!")
+			return
+	ui.sleep_fade()
+	time_of_day = 0.0
+	day += 1
+	was_night = false
+	ui.message("Guten Morgen! Wiedereinstiegspunkt gesetzt.")
+
+
+func prime_tnt(p: Vector3i, fuse: float) -> void:
+	var root := Node3D.new()
+	root.position = Vector3(p) + Vector3(0.5, 0.5, 0.5)
+	var mi := MeshInstance3D.new()
+	mi.mesh = BlockMesh.build(Blocks.TNT, 1.0, world.mat_opaque)
+	root.add_child(mi)
+	var flash := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(1.02, 1.02, 1.02)
+	flash.mesh = bm
+	var fm := StandardMaterial3D.new()
+	fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	fm.albedo_color = Color(1, 1, 1, 0.55)
+	flash.material_override = fm
+	root.add_child(flash)
+	add_child(root)
+	tnts.append({"node": root, "flash": flash, "t": fuse})
+
+
+func _tick_tnt(delta: float) -> void:
+	for i in range(tnts.size() - 1, -1, -1):
+		var e: Dictionary = tnts[i]
+		e["t"] = float(e["t"]) - delta
+		var node: Node3D = e["node"]
+		var flash: MeshInstance3D = e["flash"]
+		flash.visible = fmod(float(e["t"]), 0.5) < 0.25
+		node.scale = Vector3.ONE * (1.0 + maxf(0.0, 0.6 - float(e["t"])) * 0.25)
+		if float(e["t"]) <= 0.0:
+			var c := node.position
+			node.queue_free()
+			tnts.remove_at(i)
+			explode(c, 4.0)
+
+
+# ---------------------------------------------------------------------------
+# Schafe
+func _on_chunk_built(c: Vector2i) -> void:
+	if animal_chunks.has(c):
+		return
+	animal_chunks[c] = true
+	if world._hash2(c.x, c.y, 91) > 0.14:
+		return
+	var sheep := 0
+	for m in mobs_root.get_children():
+		if m.kind == "sheep":
+			sheep += 1
+	if sheep >= 40:
+		return
+	var n := 2 + int(world._hash2(c.x, c.y, 92) * 3.0)
+	for i in n:
+		var x := c.x * 16 + 2 + int(world._hash2(c.x + i, c.y, 93) * 12.0)
+		var z := c.y * 16 + 2 + int(world._hash2(c.x, c.y + i, 94) * 12.0)
+		var s: Vector2i = world.surface(x, z)
+		if s.x > 0 and s.y == Blocks.GRASS:
+			spawn_mob("sheep", Vector3(x + 0.5, s.x + 1.05, z + 0.5))
 
 
 func _setup_input() -> void:
@@ -186,6 +405,12 @@ func _process(delta: float) -> void:
 	world.update(player.global_position)
 	_tick_furnaces(delta)
 	_spawn_tick(delta)
+	_tick_tnt(delta)
+	autosave_t -= delta
+	if autosave_t <= 0.0:
+		if save_game():
+			ui.message("Welt automatisch gespeichert")
+		autosave_t = AUTOSAVE_EVERY
 
 
 # ---------------------------------------------------------------------------
@@ -294,6 +519,10 @@ func explode(center: Vector3, radius: float, source = null) -> void:
 				var p := c + Vector3i(dx, dy, dz)
 				var id: int = world.get_block(p.x, p.y, p.z)
 				if id == Blocks.AIR or id == Blocks.BEDROCK or id == Blocks.WATER:
+					continue
+				if id == Blocks.TNT:
+					world.set_block(p.x, p.y, p.z, Blocks.AIR)
+					prime_tnt(p, randf_range(0.5, 1.5))
 					continue
 				if id == Blocks.CHEST or id == Blocks.FURNACE:
 					chests.erase(p)

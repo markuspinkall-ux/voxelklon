@@ -30,6 +30,13 @@ static func setup(atlas: Image) -> void:
 	_add("snowball", "Schneeball", {"stack": 16})
 	_add("bucket", "Eimer", {"stack": 16})
 	_add("water_bucket", "Wassereimer", {"stack": 1})
+	_add("flint", "Feuerstein")
+	_add("flint_and_steel", "Feuerzeug", {"stack": 1, "dur": 64})
+	_add("shears", "Schere", {"stack": 1, "tool": "shears", "tier": 0, "speed": 5.0, "dur": 238})
+	_add("red_dye", "Roter Farbstoff")
+	_add("yellow_dye", "Gelber Farbstoff")
+	_add("raw_mutton", "Rohes Hammelfleisch", {"food": 2})
+	_add("cooked_mutton", "Gebratenes Hammelfleisch", {"food": 6})
 
 	# Werkzeuge: [id-Präfix, Name, Stufe, Abbaugeschwindigkeit, Haltbarkeit]
 	var mats := [
@@ -168,7 +175,7 @@ static func _item_image(id: String) -> Image:
 	img.fill(Color(0, 0, 0, 0))
 	var d: Dictionary = items[id]
 	var tool: String = d["tool"]
-	if tool != "":
+	if tool != "" and tool != "shears":
 		var cols := [Color(0.66, 0.50, 0.29), Color(0.56, 0.56, 0.56), Color(0.90, 0.90, 0.92), Color(0.35, 0.90, 0.82)]
 		_draw_tool(img, tool, cols[int(d["tier"])])
 	else:
@@ -226,6 +233,43 @@ static func _item_image(id: String) -> Image:
 					_rect(img, 4, 6, 8, 2, Color(0.2, 0.4, 0.9))
 				else:
 					_rect(img, 4, 6, 8, 1, Color(0.35, 0.35, 0.36))
+			"flint":
+				for y in range(4, 14):
+					var w := 1 + (y - 4) / 2 if y < 10 else 4 - (y - 10)
+					for x in range(8 - w, 8 + w):
+						_px(img, x, y, Color(0.22, 0.22, 0.24) if (x + y) % 3 else Color(0.38, 0.38, 0.42))
+			"flint_and_steel":
+				var st := Color(0.70, 0.70, 0.74)
+				_line(img, 3, 5, 3, 11, st)
+				_line(img, 3, 5, 7, 2, st)
+				_line(img, 3, 11, 7, 14, st)
+				_line(img, 4, 5, 4, 11, st.darkened(0.3))
+				for y in range(5, 12):
+					for x in range(9, 14):
+						if absi(x - 11) + absi(y - 8) <= 3:
+							_px(img, x, y, Color(0.25, 0.25, 0.27))
+			"shears":
+				var bl := Color(0.85, 0.85, 0.88)
+				_line(img, 4, 4, 11, 11, bl)
+				_line(img, 11, 4, 4, 11, bl)
+				_line(img, 5, 4, 11, 10, bl.darkened(0.3))
+				_disc(img, 12.5, 12.5, 2.0, Color(0.55, 0.30, 0.15))
+				_disc(img, 3.5, 12.5, 2.0, Color(0.55, 0.30, 0.15))
+				_px(img, 12, 12, Color(0, 0, 0, 0))
+				_px(img, 3, 12, Color(0, 0, 0, 0))
+			"red_dye", "yellow_dye":
+				var dc := Color(0.80, 0.12, 0.12) if id == "red_dye" else Color(0.98, 0.82, 0.15)
+				_disc(img, 8, 10, 4.0, dc)
+				for y in range(3, 8):
+					var w := (y - 2) / 2
+					for x in range(8 - w, 9 + w):
+						_px(img, x, y, dc)
+				_px(img, 6, 9, dc.lightened(0.5))
+			"raw_mutton", "cooked_mutton":
+				var mc := Color(0.85, 0.35, 0.35) if id == "raw_mutton" else Color(0.55, 0.32, 0.18)
+				_disc(img, 8, 9, 5.0, mc)
+				_line(img, 4, 8, 12, 8, Color(0.95, 0.90, 0.85) if id == "raw_mutton" else Color(0.75, 0.55, 0.35))
+				_rect(img, 12, 3, 2, 4, Color(0.92, 0.90, 0.85))
 			_:
 				_disc(img, 8, 8, 5.0, Color(1, 0, 1))
 	img.resize(32, 32, Image.INTERPOLATE_NEAREST)

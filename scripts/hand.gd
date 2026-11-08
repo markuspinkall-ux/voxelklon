@@ -5,7 +5,7 @@ extends Node3D
 
 const Blocks = preload("res://scripts/blocks.gd")
 const Items = preload("res://scripts/items.gd")
-const ChunkScript = preload("res://scripts/chunk.gd")
+const BlockMesh = preload("res://scripts/block_mesh.gd")
 
 const BASE_POS := Vector3(0.40, -0.36, -0.58)
 const SWING_TIME := 0.28
@@ -109,48 +109,7 @@ func _sprite_node(id: String, is_tool: bool) -> Node3D:
 
 func _block_node(b: int) -> Node3D:
 	var mi := MeshInstance3D.new()
-	var verts := PackedVector3Array()
-	var norms := PackedVector3Array()
-	var uvs := PackedVector2Array()
-	var cols := PackedColorArray()
-	var idx := PackedInt32Array()
-	var size := 0.24
-	for f in 6:
-		var tile: int = Blocks.tile_side[b]
-		if f == 2:
-			tile = Blocks.tile_top[b]
-		elif f == 3:
-			tile = Blocks.tile_bottom[b]
-		elif f == 4:
-			tile = Blocks.tile_front[b]
-		var u0 := float(tile % 8) * 0.125 + 0.0008
-		var v0 := float(tile / 8) * 0.125 + 0.0008
-		var u1 := u0 + 0.1234
-		var v1 := v0 + 0.1234
-		var c4: Array = ChunkScript.CORNERS[f]
-		var base := verts.size()
-		for k in 4:
-			var c: Vector3 = c4[k]
-			verts.append((c - Vector3(0.5, 0.5, 0.5)) * size)
-			norms.append(ChunkScript.NORMALS[f])
-			var sh: float = ChunkScript.SHADE[f]
-			cols.append(Color(sh, sh, sh))
-		if f == 2 or f == 3:
-			uvs.append_array(PackedVector2Array([Vector2(u0, v0), Vector2(u1, v0), Vector2(u1, v1), Vector2(u0, v1)]))
-		else:
-			uvs.append_array(PackedVector2Array([Vector2(u0, v1), Vector2(u0, v0), Vector2(u1, v0), Vector2(u1, v1)]))
-		idx.append_array(PackedInt32Array([base, base + 1, base + 2, base, base + 2, base + 3]))
-	var arr := []
-	arr.resize(Mesh.ARRAY_MAX)
-	arr[Mesh.ARRAY_VERTEX] = verts
-	arr[Mesh.ARRAY_NORMAL] = norms
-	arr[Mesh.ARRAY_TEX_UV] = uvs
-	arr[Mesh.ARRAY_COLOR] = cols
-	arr[Mesh.ARRAY_INDEX] = idx
-	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
-	mesh.surface_set_material(0, player.world.mat_opaque)
-	mi.mesh = mesh
+	mi.mesh = BlockMesh.build(b, 0.24, player.world.mat_opaque)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.position = Vector3(-0.04, 0.06, -0.08)
 	mi.rotation_degrees = Vector3(10, 40, 0)
