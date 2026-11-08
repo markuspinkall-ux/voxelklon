@@ -23,7 +23,7 @@ func _ready() -> void:
 	mouse_exited.connect(func(): hovered.emit(self, false))
 
 
-func get_stack():
+func get_stack() -> Variant:
 	if index < container.size():
 		return container[index]
 	return null
@@ -43,7 +43,7 @@ func _draw() -> void:
 		draw_rect(r, Color(0.95, 0.85, 0.3, 0.9), false, 2.0)
 	if selected:
 		draw_rect(r.grow(-1.0), Color(1, 1, 1), false, 3.0)
-	var st = get_stack()
+	var st: Variant = get_stack()
 	if st == null:
 		return
 	var tex: Texture2D = Items.icons.get(st["id"])

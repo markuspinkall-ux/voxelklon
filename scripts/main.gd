@@ -341,7 +341,7 @@ func _tick_furnaces(delta: float) -> void:
 		var res := ""
 		if inp != null and Recipes.smelting.has(inp["id"]):
 			res = Recipes.smelting[inp["id"]]
-		var can := res != "" and (out == null or (out["id"] == res and int(out["count"]) < 64))
+		var can: bool = res != "" and (out == null or (out["id"] == res and int(out["count"]) < 64))
 		if float(f["burn"]) > 0.0:
 			f["burn"] = float(f["burn"]) - delta
 		if float(f["burn"]) <= 0.0 and can and s[1] != null:
