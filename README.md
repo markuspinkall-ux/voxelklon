@@ -24,7 +24,11 @@ Fertige Builds (automatisch bei jedem Push gebaut): **https://github.com/markusp
 - **Truhen** mit 27 Plätzen
 - **Werkzeuge** in Holz/Stein/Eisen/Diamant mit Abbaugeschwindigkeit, Abbaustufen (z.B. Eisenerz braucht Steinspitzhacke) und Haltbarkeit
 - **Rezeptbuch** im Spiel (Taste R im Inventar)
-- **Startmenü** (Seed, Sichtweite) und **Pause-Menü** (Esc) im Graphit-Stil von Creative OS
+- **Speichern & Laden**: mehrere Welten, automatisches Speichern alle 3 Minuten und beim Verlassen; gespeichert werden veränderte Chunks, Inventar, Position, Truhen, Öfen, Uhrzeit
+- **Startmenü** (Weltname, Seed, Sichtweite, Welt laden/löschen, Steuerung) und **Pause-Menü** (Esc: Weiterspielen, Speichern, Steuerung, Hauptmenü, Beenden) im Graphit-Stil von Creative OS
+- **Schafe**: geben beim Töten Wolle + Hammelfleisch, mit der Schere geschoren 1–3 Wolle (wächst nach)
+- **Bett**: nachts schlafen (überspringt die Nacht, nicht wenn Monster in der Nähe sind) und Wiedereinstiegspunkt setzen
+- **TNT** mit Feuerzeug zünden (4 s Zündschnur, Kettenreaktionen); Feuerstein aus Kies
 - **Animierte Hand** in der Ego-Ansicht: Arm mit leerer Hand, Werkzeug oder Block in der Hand, Schwung beim Abbauen/Schlagen/Bauen, Wippen beim Laufen
 
 ### Rezepte (Auswahl)
@@ -42,6 +46,13 @@ Fertige Builds (automatisch bei jedem Push gebaut): **https://github.com/markusp
 | Schaufel | `M / S / S` |
 | Schwert | `M / M / S` |
 | Eimer | `I·I / ·I·` (Eisen) |
+| Bett | `WWW / PPP` (3 gleichfarbige Wolle über 3 Brettern, Werkbank) |
+| Schere | `·I / I·` (2 Eisenbarren diagonal) |
+| Feuerzeug | Eisenbarren + Feuerstein (formlos) |
+| TNT | `GSG / SGS / GSG` (5 Schwarzpulver, 4 Sand) |
+| Roter / Gelber Farbstoff | Mohn / Löwenzahn (formlos) |
+| Rote / Gelbe Wolle | Farbstoff + weiße Wolle (formlos) |
+| Gebratenes Hammelfleisch | rohes Hammelfleisch im Ofen |
 | Steinziegel, Sandstein, Schneeblock | 2×2 |
 | Eisen-/Diamant-/Kohleblock | 3×3 (und zurück) |
 
@@ -55,12 +66,12 @@ Fertige Builds (automatisch bei jedem Push gebaut): **https://github.com/markusp
 | Leertaste | Springen / im Wasser nach oben schwimmen |
 | Strg oder Shift | Sprinten |
 | Linke Maustaste (halten) | Abbauen / Angreifen |
-| Rechte Maustaste | Platzieren, Werkbank/Ofen/Truhe öffnen, essen, Eimer benutzen |
+| Rechte Maustaste | Platzieren, Werkbank/Ofen/Truhe öffnen, essen, schlafen, Schaf scheren, TNT zünden, Eimer |
 | 1–9 / Mausrad | Schnellleiste |
 | E | Inventar öffnen/schließen |
 | R | Rezeptbuch (im Inventar) |
 | Q | Item wegwerfen |
-| Esc | Pause-Menü / Menü schließen |
+| Esc | Pause-Menü (dort auch „Steuerung“ und „Speichern“) |
 | F11 | Vollbild |
 
 Im Inventar: Linksklick = Stapel nehmen/ablegen, Rechtsklick = halbieren bzw. einzeln ablegen, Shift+Klick = schnell verschieben (auch Crafting-Ergebnis: alles craften).
@@ -123,7 +134,9 @@ scripts/
   texture_gen.gd  Prozedurale 16×16-Texturen
   player.gd       Spieler (Bewegung, Abbauen, Bauen, Kampf, Leben)
   mob.gd          Zombie, Creeper, Villager
-  menu.gd         Startmenü
+  menu.gd         Startmenü (Neue Welt, Laden, Steuerung)
+  controls.gd     Steuerungstext
+  block_mesh.gd   Einzelblock-Mesh (Hand, gezündetes TNT)
   hand.gd         Animierte Hand / gehaltenes Item
   inventory.gd    Inventar
   ui.gd, slot.gd  HUD, Inventar, Crafting, Truhe, Ofen, Rezeptbuch
@@ -140,7 +153,8 @@ icons/            App-Icons (PNG, aus icon.svg)
 
 ## Bewusste Vereinfachungen
 
-- Die Welt wird nicht gespeichert (jeder Start = neue Welt).
 - Wasser fließt vereinfacht (füllt Löcher und fällt nach unten, keine Strömung).
 - Abgebaute Blöcke landen direkt im Inventar (keine herumliegenden Items).
 - Kein Sound, keine Hunger-Leiste.
+- Betten sind 1 Block groß (im Original 2), Tiere werden nicht mitgespeichert (sie erscheinen beim Laden neu).
+- Spielstände liegen unter `~/.local/share/godot/app_userdata/Creative Craft/saves/` (Flatpak: `~/.var/app/org.creativecraft.CreativeCraft/data/godot/app_userdata/Creative Craft/saves/`).

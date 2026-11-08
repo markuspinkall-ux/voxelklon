@@ -45,6 +45,16 @@ jobs:
           grep -q "Creative Craft gestartet" run.log || { echo "::error::Spiel ist nicht vollständig gestartet"; exit 1; }
           grep -q "Speichertest OK" run.log || { echo "::error::Speichern/Laden funktioniert nicht"; exit 1; }
 
+      - name: Startmenü testweise anzeigen
+        run: |
+          set +e
+          timeout 120 godot --headless --path . --quit-after 240 > menu.log 2>&1
+          cat menu.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Invalid call|Invalid access" menu.log; then
+            echo "::error::Fehler im Startmenü"
+            exit 1
+          fi
+
       - name: Linux-Export
         run: |
           mkdir -p build/linux
