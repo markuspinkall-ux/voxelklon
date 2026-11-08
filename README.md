@@ -2,6 +2,13 @@
 
 Komplett in GDScript, ohne externe Assets: alle Texturen und Icons werden beim Start prozedural erzeugt.
 
+## Download
+
+Fertige Builds (automatisch bei jedem Push gebaut): **https://github.com/markuspinkall-ux/voxelklon/releases/tag/latest**
+
+- Flatpak: `flatpak install --user VoxelKlon.flatpak` → `flatpak run org.voxelklon.VoxelKlon`
+- RPM: `sudo dnf install ./voxelklon-0.1.0-1.x86_64.rpm` → `voxelklon`
+
 ## Features
 
 - **Unendliche Voxel-Welt** in Chunks (16×80×16), zufälliger Seed bei jedem Start
